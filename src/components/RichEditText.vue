@@ -5,14 +5,11 @@
       <el-col :span="16">
         <quill-editor v-model="content"
                       ref="myQuillEditor"
-                      :options="editorOption"
-                      @blur="onEditorBlur($event)"
-                      @focus="onEditorFocus($event)"
-                      @ready="onEditorReady($event)">
+                      :options="editorOption">
         </quill-editor>
 
         <br><br>
-        <el-button type="primary" @click="showContent">保存为JSON</el-button>
+        <el-button type="primary" @click="showContent">输出JSON到控制台</el-button>
       </el-col>
       <el-col :span="4">&nbsp;</el-col>
     </el-row>
@@ -47,8 +44,134 @@
         console.log('editor change!', quill, html, text)
         this.content = html
       },
-      showContent() {
-        console.log(this.editor.getContents());
+      showContent: function () {
+//        console.log(this.editor.getContents());
+        //获得内容对象Delta
+        var content = this.editor.getContents().ops;
+        var data = {
+          blocks: [],
+          entityMap: {}
+        };
+        var len=0; //data数组的长度
+        for (let i = 0; i < content.length; i++) {
+          if (content[i].insert.image) {
+            //先组成对象数组
+            data.blocks.push({
+              depth: "0",
+              entityRanges: [],
+              inlineStyleRanges: [],
+              text: "",
+              type: "unstyled"
+            });
+            let name = content[i].insert.image.substring(28, 40);
+            let obj = {};
+            obj[name] = {
+              materialId: 'undefined',//未确定
+              name: name,
+              url: 'undefined',//未确定
+              mutability: 'MUTABLE',
+              type: 'SIDERIMAGE'
+            };
+            data.entityMap[name] = obj;
+            data.blocks[len].type = "atomic";
+            let enR = {
+              key: name,
+              length: 1
+            };
+            data.blocks[len].entityRanges.push(enR);
+            len++;
+          }
+          else {
+            var arr = content[i].insert.toString().split('\n');
+            console.log(arr);
+//            if (arr.length === 0) {
+//              if (len > 0) {
+//                let style = Object.keys(content[i].attributes)[0];
+//                style += content[i].attributes[style];
+//                data.blocks[len - 1].type = style;
+//              }
+//              else continue;
+//            }
+//            else {
+              for (let j = 0; j < arr.length; j++) {
+                //解决文字位置在“换行符”元素处才显示的情况
+                if((arr.indexOf("")===0 && content[i].attributes && len>0)) {
+                  let style = Object.keys(content[i].attributes)[0];
+                  style += content[i].attributes[style];
+                  data.blocks[len - 1].type = (data.blocks[len - 1].type==='atomic'?'atomic':style);
+                  //解决居中时文字字体不一致的情况
+                  if(len>1 && data.blocks[len-2].text !== "") {
+                    data.blocks[len-2].type = (data.blocks[len - 2].type==='atomic'?'atomic':style);
+                  }
+                  continue;
+                }
+                data.blocks.push({
+                  depth: "0",
+                  entityRanges: [],
+                  inlineStyleRanges: [],
+                  text: "",
+                  type: "unstyled"
+                });
+                data.blocks[len].text = arr[j].toString().trim();
+                data.blocks[len].inlineStyleRanges.push({
+                  length: arr[j].length,
+                  style: content[i].attributes
+                });
+                len++;
+              }
+//            }
+            /*
+          //判断是否仅仅是换行符
+          if (!content[i].insert.toString().trim() && content[i].attributes) {
+            if (i > 0) {
+              //attributes放到上个对象的type中
+              let style = Object.keys(content[i].attributes)[0];
+              style += content[i].attributes[style];
+              data.blocks[i - 1].type = style;
+            }
+            else {
+              //未有内容就开始的换行符都忽略
+              continue;
+            }
+          }
+          else if (content[i].attributes) {
+            data.blocks[i].text = content[i].insert.toString().trim();
+            data.blocks[i].inlineStyleRanges.push({
+              length: content[i].insert.length,
+              style: content[i].attributes
+            });
+          }
+          else if (content[i].insert.image) {
+            let name = content[i].insert.image.substring(28, 40);
+            let obj = {};
+            obj[name] = {
+              materialId: 'undefined',//未确定
+              name: name,
+              url: 'undefined',//未确定
+              mutability: 'MUTABLE',
+              type: 'SIDERIMAGE'
+            };
+            data.entityMap[name] = obj;
+            data.blocks[i].type = "atomic";
+            let enR = {
+              key: name,
+              length: 1
+            };
+            data.blocks[i].entityRanges.push(enR);
+          }
+          else {
+            data.blocks[i].text = content[i].insert.toString().trim();
+            data.blocks[i].inlineStyleRanges.push({
+              length: content[i].insert.length
+            });
+          }
+          */
+          }
+        }
+
+        console.log(data);
+        console.log(JSON.stringify(data));
+
       }
     },
     computed: {
@@ -64,5 +187,10 @@
 </script>
 
 <style>
-
+.quill-editor{
+  height:500px;
+}
+.el-button{
+  margin-top: 50px;
+}
 </style>
