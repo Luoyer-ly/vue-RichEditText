@@ -61,10 +61,10 @@
               entityRanges: [],
               inlineStyleRanges: [],
               text: "",
-              type: "unstyled"
+              type: "atomic"
             });
-            let name = content[i].insert.image.substring(28, 40);
-            let obj = {};
+            var name = content[i].insert.image.substring(28, 50);
+            var obj = {};
             obj[name] = {
               materialId: 'undefined',//未确定
               name: name,
@@ -73,7 +73,7 @@
               type: 'SIDERIMAGE'
             };
             data.entityMap[name] = obj;
-            data.blocks[len].type = "atomic";
+//            data.blocks[len].type = "atomic";
             let enR = {
               key: name,
               length: 1
@@ -82,26 +82,58 @@
             len++;
           }
           else {
-            var arr = content[i].insert.toString().split('\n');
-            console.log(arr);
-//            if (arr.length === 0) {
-//              if (len > 0) {
-//                let style = Object.keys(content[i].attributes)[0];
-//                style += content[i].attributes[style];
-//                data.blocks[len - 1].type = style;
-//              }
-//              else continue;
-//            }
+            if(/^(\n)$/.test(content[i].insert.toString())) {
+              if(len>0 && content[i].attributes && (data.blocks[len-1].text || data.blocks[len-1].type==='atomic')) {
+                let style = Object.keys(content[i].attributes)[0];
+                style += content[i].attributes[style];
+                data.blocks[len - 1].type = (data.blocks[len - 1].type==='atomic'?'atomic':style);
+                if(len>1 && data.blocks[len-2].text) {
+                    data.blocks[len-2].type = (data.blocks[len-2].type==='atomic'?'atomic':style);
+                }
+                continue;
+              }
+              else {
+                data.blocks.push({
+                  depth: "0",
+                  entityRanges: [],
+                  inlineStyleRanges: [],
+                  text: "",
+                  type: "unstyled"
+                });
+                len++;
+              }
+            }
+            else if(/^(\n)+$/.test(content[i].insert.toString())) {
+               if(len>0) {
+                   let style = Object.keys(content[i].attributes)[0];
+                   style += content[i].attributes[style];
+                   data.blocks[len-1].type = (data.blocks[len-1].type==='atomic'?'atomic':style);
+               }
+               for(let sym=1;sym < content[i].insert.toString().length;sym++) {
+                 data.blocks.push({
+                   depth: "0",
+                   entityRanges: [],
+                   inlineStyleRanges: [],
+                   text: "",
+                   type: "unstyled"
+                 });
+                 len++;
+               }
+            }
+            else {
+              var arr = content[i].insert.toString().split('\n');
+//              console.log(arr);
+
 //            else {
               for (let j = 0; j < arr.length; j++) {
                 //解决文字位置在“换行符”元素处才显示的情况
-                if((arr.indexOf("")===0 && content[i].attributes && len>0)) {
+                if((arr.indexOf("")===j && j===0 && content[i].attributes && len>0 && data.blocks[len-1].text)) {
                   let style = Object.keys(content[i].attributes)[0];
                   style += content[i].attributes[style];
-                  data.blocks[len - 1].type = (data.blocks[len - 1].type==='atomic'?'atomic':style);
+                  data.blocks[len - 1].type = (data.blocks[len - 1].type ==='atomic'?'atomic':style);
                   //解决居中时文字字体不一致的情况
-                  if(len>1 && data.blocks[len-2].text !== "") {
-                    data.blocks[len-2].type = (data.blocks[len - 2].type==='atomic'?'atomic':style);
+                  if(len>1 && (data.blocks[len-2].text)) {
+                    data.blocks[len-2].type = (data.blocks[len - 2].type ==='atomic'?'atomic':style);
                   }
                   continue;
                 }
@@ -119,6 +151,7 @@
                 });
                 len++;
               }
+            }
 //            }
             /*
           //判断是否仅仅是换行符
