@@ -1,4 +1,4 @@
-#显示方法：
+# 显示方法：
 > 下载后运行npm i安装好依赖包，运行npm run dev，编译完成后打开浏览器访问 http://localhost:8080/ 即可
 
 # vue-richedittext
